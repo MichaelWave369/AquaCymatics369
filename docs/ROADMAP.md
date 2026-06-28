@@ -11,19 +11,23 @@
 
 ## v0.2 — Source image reconstruction lane
 
+Status: initial pass shipped.
+
 - Upload cymatic still image
-- Extract radial symmetry and node map
-- Generate height-field and torus projection previews
+- Extract center void, radial rings, dominant symmetry, color signal, contrast, and confidence
+- Route extracted metrics into the WebGL2 field as inferred reconstruction hints
+- Auto-adjust symmetry, harmonic layers, bloom, amplitude, and claim class from image analysis
 - Export visual receipt JSON
-- Clear label: AI-inferred / artistic unless validated by measured data
+- Clear label: Inferred unless validated by measured data
 
 ## v0.3 — Audio analysis lane
 
 - Harmonic spectrum panel
 - Optional live input mode
-- Beat/peak detection
+- Beat and peak detection
 - Frequency presets and sweep recorder
 - Session receipt export
+- Add volume envelope and harmonic oscillator blend
 
 ## v0.4 — Measured-data lane
 
