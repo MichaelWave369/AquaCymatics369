@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import VisualizerCanvas from './components/VisualizerCanvas.jsx';
 import SpectrumPanel from './components/SpectrumPanel.jsx';
+import SessionPanel from './components/SessionPanel.jsx';
 import { CymaticAudioEngine } from './lib/CymaticAudioEngine.js';
 import { analyzeCymaticImage, downloadReceipt, makeReconstructionReceipt } from './lib/imageReconstruction.js';
+import {
+  deleteSession,
+  downloadCanvasSnapshot,
+  listSessions,
+  makeSessionSnapshot,
+  saveSession
+} from './lib/sessionStore.js';
 
 const viewModes = [
   { label: 'Top mandala', value: 0 },
@@ -76,12 +84,18 @@ export default function App() {
   const [reconstruction, setReconstruction] = useState(null);
   const [uploadState, setUploadState] = useState('idle');
   const [uploadError, setUploadError] = useState('');
+  const [sessions, setSessions] = useState([]);
+  const [snapshotStatus, setSnapshotStatus] = useState('');
   const audioRef = useRef(null);
 
   const currentClaim = useMemo(
     () => claimModes.find((mode) => mode.value === Number(claimMode)) ?? claimModes[0],
     [claimMode]
   );
+
+  useEffect(() => {
+    setSessions(listSessions());
+  }, []);
 
   useEffect(() => {
     audioRef.current = new CymaticAudioEngine();
@@ -134,6 +148,31 @@ export default function App() {
 
     return () => cancelAnimationFrame(frameId);
   }, [sweepRunning, sweepStart, sweepEnd, sweepDuration]);
+
+  const renderControls = {
+    frequency,
+    amplitude,
+    symmetry,
+    harmonics,
+    bloom,
+    spin,
+    viewMode,
+    claimMode,
+    harmonicMix,
+    sweep: {
+      start: sweepStart,
+      end: sweepEnd,
+      durationSeconds: sweepDuration,
+      progress: Number(sweepProgress.toFixed(3)),
+      running: sweepRunning
+    }
+  };
+
+  const params = {
+    ...renderControls,
+    audioLevel,
+    reconstruction
+  };
 
   const handleToneToggle = async () => {
     const engine = audioRef.current;
@@ -191,33 +230,59 @@ export default function App() {
     }
   };
 
-  const renderControls = {
-    frequency,
-    amplitude,
-    symmetry,
-    harmonics,
-    bloom,
-    spin,
-    viewMode,
-    claimMode,
-    harmonicMix,
-    sweep: {
-      start: sweepStart,
-      end: sweepEnd,
-      durationSeconds: sweepDuration,
-      progress: Number(sweepProgress.toFixed(3)),
-      running: sweepRunning
+  const exportReceipt = () => {
+    downloadReceipt(makeReconstructionReceipt(reconstruction, renderControls));
+  };
+
+  const handleSnapshot = () => {
+    const result = downloadCanvasSnapshot();
+    setSnapshotStatus(result.message);
+  };
+
+  const handleSaveSession = () => {
+    try {
+      const session = makeSessionSnapshot({
+        controls: renderControls,
+        reconstruction,
+        audio: {
+          level: Number(audioLevel.toFixed(3)),
+          peakHz: Math.round(peakHz),
+          state: audioState,
+          spectrum: spectrum.map((value) => Number(value.toFixed(3)))
+        }
+      });
+      setSessions(saveSession(session));
+      setSnapshotStatus('Session saved locally.');
+    } catch {
+      setSnapshotStatus('Could not save session. Try exporting a receipt instead.');
     }
   };
 
-  const params = {
-    ...renderControls,
-    audioLevel,
-    reconstruction
+  const handleLoadSession = (session) => {
+    const controls = session.controls ?? {};
+    const sweep = controls.sweep ?? {};
+    setSweepRunning(false);
+    setFrequency(controls.frequency ?? 432);
+    setAmplitude(controls.amplitude ?? 0.62);
+    setSymmetry(controls.symmetry ?? 12);
+    setHarmonics(controls.harmonics ?? 7);
+    setBloom(controls.bloom ?? 0.72);
+    setSpin(controls.spin ?? 0.38);
+    setViewMode(controls.viewMode ?? 0);
+    setClaimMode(controls.claimMode ?? (session.reconstruction ? 2 : 1));
+    setHarmonicMix(controls.harmonicMix ?? 0.22);
+    setSweepStart(sweep.start ?? 111);
+    setSweepEnd(sweep.end ?? 963);
+    setSweepDuration(sweep.durationSeconds ?? 18);
+    setSweepProgress(0);
+    setReconstruction(session.reconstruction ?? null);
+    setUploadState(session.reconstruction ? 'ready' : 'idle');
+    setSnapshotStatus('Session loaded.');
   };
 
-  const exportReceipt = () => {
-    downloadReceipt(makeReconstructionReceipt(reconstruction, renderControls));
+  const handleDeleteSession = (id) => {
+    setSessions(deleteSession(id));
+    setSnapshotStatus('Session deleted.');
   };
 
   return (
@@ -228,7 +293,7 @@ export default function App() {
           <h1>AquaCymatics369</h1>
           <p className="lede">
             Sound-reactive cymatic fields, torus flythroughs, image-derived reconstruction hints,
-            spectrum analysis, sweep mode, and a built-in claim ledger.
+            spectrum analysis, sweep mode, saved sessions, and a built-in claim ledger.
           </p>
         </div>
 
@@ -322,6 +387,15 @@ export default function App() {
             harmonicMix={harmonicMix}
           />
 
+          <SessionPanel
+            sessions={sessions}
+            onSaveSession={handleSaveSession}
+            onLoadSession={handleLoadSession}
+            onDeleteSession={handleDeleteSession}
+            onSnapshot={handleSnapshot}
+            snapshotStatus={snapshotStatus}
+          />
+
           <section className="reconstruction-card">
             <div className="card-title-row">
               <div>
@@ -339,7 +413,11 @@ export default function App() {
 
             {reconstruction ? (
               <div className="reconstruction-grid">
-                <img src={reconstruction.dataUrl} alt="Uploaded cymatic source" />
+                {reconstruction.dataUrl ? (
+                  <img src={reconstruction.dataUrl} alt="Uploaded cymatic source" />
+                ) : (
+                  <div className="source-placeholder">Saved metrics</div>
+                )}
                 <dl>
                   <div>
                     <dt>Source</dt>
