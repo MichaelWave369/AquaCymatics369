@@ -4,14 +4,17 @@ A browser-based cymatics field explorer for sound-reactive WebGL visuals and cla
 
 ## Vision
 
-AquaCymatics369 turns frequency, audio level, symmetry, and camera controls into explorable visual fields. The project keeps wonder and honesty together: renders are labeled as artistic, simulated, inferred, or measured depending on the input and pipeline.
+AquaCymatics369 turns frequency, audio level, symmetry, source-image hints, and camera controls into explorable visual fields. The project keeps wonder and honesty together: renders are labeled as artistic, simulated, inferred, or measured depending on the input and pipeline.
 
-## v0.1 prototype
+## v0.2 prototype
 
 - React + Vite GitHub Pages app
 - Custom WebGL2 procedural cymatic shader engine
 - Browser oscillator signal with analyser-driven visual response
-- Frequency, amplitude, symmetry, harmonic, bloom, rotation, and camera controls
+- Frequency presets plus amplitude, symmetry, harmonic, bloom, rotation, and camera controls
+- Image upload lane that extracts center void, radial rings, dominant symmetry, and confidence
+- Source-image metrics routed into the WebGL field as inferred reconstruction hints
+- Receipt JSON export
 - Claim ledger overlay with Artistic, Simulated, Inferred, and Measured classes
 
 ## Quick start
