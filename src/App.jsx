@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import VisualizerCanvas from './components/VisualizerCanvas.jsx';
 import { CymaticAudioEngine } from './lib/CymaticAudioEngine.js';
+import { analyzeCymaticImage, downloadReceipt, makeReconstructionReceipt } from './lib/imageReconstruction.js';
 
 const viewModes = [
   { label: 'Top mandala', value: 0 },
   { label: 'Side torus', value: 1 },
   { label: 'Center dive', value: 2 },
   { label: 'Field tunnel', value: 3 }
+];
+
+const presets = [
+  { label: '174', value: 174 },
+  { label: '369', value: 369 },
+  { label: '432', value: 432 },
+  { label: '528', value: 528 },
+  { label: '639', value: 639 }
 ];
 
 const claimModes = [
@@ -40,6 +49,10 @@ function formatHz(value) {
   return `${Number(value).toFixed(value < 100 ? 1 : 0)} Hz`;
 }
 
+function pct(value) {
+  return `${Math.round(value * 100)}%`;
+}
+
 export default function App() {
   const [frequency, setFrequency] = useState(432);
   const [amplitude, setAmplitude] = useState(0.62);
@@ -51,6 +64,9 @@ export default function App() {
   const [claimMode, setClaimMode] = useState(1);
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioState, setAudioState] = useState('stopped');
+  const [reconstruction, setReconstruction] = useState(null);
+  const [uploadState, setUploadState] = useState('idle');
+  const [uploadError, setUploadError] = useState('');
   const audioRef = useRef(null);
 
   const currentClaim = useMemo(
@@ -94,7 +110,30 @@ export default function App() {
     setAudioState('playing');
   };
 
-  const params = {
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadState('reading');
+      setUploadError('');
+      const result = await analyzeCymaticImage(file);
+      setReconstruction(result);
+      setClaimMode(2);
+      setViewMode(0);
+      setSymmetry(result.dominantSymmetry);
+      setHarmonics(Math.max(3, Math.min(12, result.ringCount + 3)));
+      setBloom(0.86);
+      setAmplitude(Math.max(0.48, Math.min(0.92, 0.46 + result.confidence * 0.48)));
+      setUploadState('ready');
+    } catch (error) {
+      console.error(error);
+      setUploadError('Could not read that image. Try a PNG or JPG cymatic still.');
+      setUploadState('error');
+    }
+  };
+
+  const renderControls = {
     frequency,
     amplitude,
     symmetry,
@@ -102,8 +141,17 @@ export default function App() {
     bloom,
     spin,
     viewMode,
-    claimMode,
-    audioLevel
+    claimMode
+  };
+
+  const params = {
+    ...renderControls,
+    audioLevel,
+    reconstruction
+  };
+
+  const exportReceipt = () => {
+    downloadReceipt(makeReconstructionReceipt(reconstruction, renderControls));
   };
 
   return (
@@ -113,8 +161,8 @@ export default function App() {
           <p className="eyebrow">Parallax Lab • WebGL2 Cymatics Runtime</p>
           <h1>AquaCymatics369</h1>
           <p className="lede">
-            Sound-reactive cymatic fields, torus flythroughs, mandala symmetry, and a built-in
-            claim ledger so the wonder stays clean.
+            Sound-reactive cymatic fields, torus flythroughs, image-derived reconstruction hints,
+            and a built-in claim ledger so the wonder stays clean.
           </p>
         </div>
 
@@ -143,6 +191,14 @@ export default function App() {
             <button className={audioState === 'playing' ? 'active' : ''} onClick={handleToneToggle}>
               {audioState === 'playing' ? 'Stop oscillator' : 'Start oscillator'}
             </button>
+          </div>
+
+          <div className="preset-row" aria-label="Frequency presets">
+            {presets.map((preset) => (
+              <button key={preset.value} className="chip" onClick={() => setFrequency(preset.value)}>
+                {preset.label}
+              </button>
+            ))}
           </div>
 
           <Control label="Frequency" value={frequency} min={32} max={963} step={1} unit="Hz" onChange={setFrequency} />
@@ -174,24 +230,73 @@ export default function App() {
             </select>
           </label>
 
+          <section className="reconstruction-card">
+            <div className="card-title-row">
+              <div>
+                <p className="ledger-title">v0.2 image lane</p>
+                <h3>Reconstruction hints</h3>
+              </div>
+              <label className="upload-button">
+                Upload image
+                <input type="file" accept="image/*" onChange={handleImageUpload} />
+              </label>
+            </div>
+
+            {uploadState === 'reading' && <p className="subtle">Reading radial rings and symmetry...</p>}
+            {uploadError && <p className="error-text">{uploadError}</p>}
+
+            {reconstruction ? (
+              <div className="reconstruction-grid">
+                <img src={reconstruction.dataUrl} alt="Uploaded cymatic source" />
+                <dl>
+                  <div>
+                    <dt>Source</dt>
+                    <dd>{reconstruction.fileName}</dd>
+                  </div>
+                  <div>
+                    <dt>Detected symmetry</dt>
+                    <dd>{reconstruction.dominantSymmetry} sectors • {pct(reconstruction.symmetryConfidence)}</dd>
+                  </div>
+                  <div>
+                    <dt>Rings / void</dt>
+                    <dd>{reconstruction.ringCount} rings • void {pct(reconstruction.voidRadius)}</dd>
+                  </div>
+                  <div>
+                    <dt>Confidence</dt>
+                    <dd>{pct(reconstruction.confidence)} inferred</dd>
+                  </div>
+                </dl>
+              </div>
+            ) : (
+              <p className="subtle">
+                Upload a cymatic still to extract a center void, ring profile, and dominant symmetry.
+                The app will relabel the render as Inferred, not Measured.
+              </p>
+            )}
+
+            <button className="receipt-button" onClick={exportReceipt}>
+              Export receipt JSON
+            </button>
+          </section>
+
           <div className="ledger-card">
             <p className="ledger-title">Ledger overlay</p>
             <dl>
               <div>
                 <dt>Input</dt>
-                <dd>{formatHz(frequency)} browser oscillator signal</dd>
+                <dd>{reconstruction ? `${reconstruction.fileName} + ${formatHz(frequency)} oscillator` : `${formatHz(frequency)} browser oscillator signal`}</dd>
               </div>
               <div>
                 <dt>Transform</dt>
-                <dd>polar wavefield → harmonic lattice → torus projection → bloom pass</dd>
+                <dd>{reconstruction ? 'image decode → radial profile → symmetry scan → inferred field projection' : 'polar wavefield → harmonic lattice → torus projection → bloom pass'}</dd>
               </div>
               <div>
                 <dt>Allowed</dt>
-                <dd>{currentClaim.allowed}</dd>
+                <dd>{reconstruction ? reconstruction.allowedClaim : currentClaim.allowed}</dd>
               </div>
               <div>
                 <dt>Blocked</dt>
-                <dd>{currentClaim.blocked}</dd>
+                <dd>{reconstruction ? reconstruction.blockedClaim : currentClaim.blocked}</dd>
               </div>
             </dl>
           </div>
