@@ -51,7 +51,6 @@ export default function App() {
   const [claimMode, setClaimMode] = useState(1);
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioState, setAudioState] = useState('stopped');
-  const [micState, setMicState] = useState('off');
   const audioRef = useRef(null);
 
   const currentClaim = useMemo(
@@ -93,26 +92,6 @@ export default function App() {
 
     await engine.startTone(frequency, amplitude);
     setAudioState('playing');
-    setMicState('off');
-  };
-
-  const handleMicToggle = async () => {
-    const engine = audioRef.current;
-    if (!engine) return;
-
-    if (micState === 'on') {
-      engine.stopMicrophone();
-      setMicState('off');
-      return;
-    }
-
-    const ok = await engine.startMicrophone();
-    if (ok) {
-      setMicState('on');
-      setAudioState('stopped');
-    } else {
-      setMicState('blocked');
-    }
   };
 
   const params = {
@@ -160,12 +139,9 @@ export default function App() {
             <h2>Frequency → Form</h2>
           </div>
 
-          <div className="button-row">
+          <div className="button-row single">
             <button className={audioState === 'playing' ? 'active' : ''} onClick={handleToneToggle}>
-              {audioState === 'playing' ? 'Stop tone' : 'Play tone'}
-            </button>
-            <button className={micState === 'on' ? 'active' : ''} onClick={handleMicToggle}>
-              {micState === 'on' ? 'Stop mic' : micState === 'blocked' ? 'Mic blocked' : 'Use mic'}
+              {audioState === 'playing' ? 'Stop oscillator' : 'Start oscillator'}
             </button>
           </div>
 
@@ -203,7 +179,7 @@ export default function App() {
             <dl>
               <div>
                 <dt>Input</dt>
-                <dd>{formatHz(frequency)} procedural oscillator / mic signal</dd>
+                <dd>{formatHz(frequency)} browser oscillator signal</dd>
               </div>
               <div>
                 <dt>Transform</dt>
