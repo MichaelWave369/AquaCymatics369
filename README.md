@@ -6,6 +6,14 @@ A browser-based cymatics field explorer for sound-reactive WebGL visuals and cla
 
 AquaCymatics369 turns frequency, audio level, symmetry, and camera controls into explorable visual fields. The project keeps wonder and honesty together: renders are labeled as artistic, simulated, inferred, or measured depending on the input and pipeline.
 
+## v0.1 prototype
+
+- React + Vite GitHub Pages app
+- Custom WebGL2 procedural cymatic shader engine
+- Browser oscillator signal with analyser-driven visual response
+- Frequency, amplitude, symmetry, harmonic, bloom, rotation, and camera controls
+- Claim ledger overlay with Artistic, Simulated, Inferred, and Measured classes
+
 ## Quick start
 
 ```bash
@@ -13,10 +21,25 @@ npm install
 npm run dev
 ```
 
+## Build
+
+```bash
+npm run build
+npm run preview
+```
+
 ## GitHub Pages
 
 This repo includes a GitHub Actions workflow that builds the Vite app and deploys it to GitHub Pages. In the repository settings, set Pages source to GitHub Actions.
 
+Expected project URL after Pages is enabled:
+
+```text
+https://michaelwave369.github.io/AquaCymatics369/
+```
+
 ## Claim boundary
 
 A 2D cymatic image can inspire a 3D reconstruction, but it does not prove a hidden 3D object by itself. This app is designed to make that boundary visible in the interface.
+
+See `docs/CLAIM_BOUNDARY.md` and `docs/ROADMAP.md` for the receipt lane and next build steps.
