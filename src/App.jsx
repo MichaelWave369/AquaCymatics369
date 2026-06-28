@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import VisualizerCanvas from './components/VisualizerCanvas.jsx';
+import SpectrumPanel from './components/SpectrumPanel.jsx';
 import { CymaticAudioEngine } from './lib/CymaticAudioEngine.js';
 import { analyzeCymaticImage, downloadReceipt, makeReconstructionReceipt } from './lib/imageReconstruction.js';
 
@@ -64,6 +65,14 @@ export default function App() {
   const [claimMode, setClaimMode] = useState(1);
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioState, setAudioState] = useState('stopped');
+  const [spectrum, setSpectrum] = useState(Array.from({ length: 52 }, () => 0));
+  const [peakHz, setPeakHz] = useState(0);
+  const [harmonicMix, setHarmonicMix] = useState(0.22);
+  const [sweepStart, setSweepStart] = useState(111);
+  const [sweepEnd, setSweepEnd] = useState(963);
+  const [sweepDuration, setSweepDuration] = useState(18);
+  const [sweepRunning, setSweepRunning] = useState(false);
+  const [sweepProgress, setSweepProgress] = useState(0);
   const [reconstruction, setReconstruction] = useState(null);
   const [uploadState, setUploadState] = useState('idle');
   const [uploadError, setUploadError] = useState('');
@@ -80,7 +89,11 @@ export default function App() {
 
     const tick = () => {
       const engine = audioRef.current;
-      setAudioLevel(engine ? engine.getLevel() : 0);
+      if (engine) {
+        setAudioLevel(engine.getLevel());
+        setSpectrum(engine.getSpectrum(52));
+        setPeakHz(engine.getPeakFrequency());
+      }
       frameId = requestAnimationFrame(tick);
     };
 
@@ -93,21 +106,66 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    audioRef.current?.setTone(frequency, amplitude);
-  }, [frequency, amplitude]);
+    audioRef.current?.setTone(frequency, amplitude, harmonicMix);
+  }, [frequency, amplitude, harmonicMix]);
+
+  useEffect(() => {
+    if (!sweepRunning) return undefined;
+
+    let frameId;
+    const startedAt = performance.now();
+    const durationMs = Math.max(3, sweepDuration) * 1000;
+
+    const tick = (now) => {
+      const progress = Math.min(1, (now - startedAt) / durationMs);
+      const eased = progress * progress * (3 - 2 * progress);
+      const nextFrequency = sweepStart + (sweepEnd - sweepStart) * eased;
+      setFrequency(Math.round(nextFrequency));
+      setSweepProgress(progress);
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      } else {
+        setSweepRunning(false);
+      }
+    };
+
+    frameId = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(frameId);
+  }, [sweepRunning, sweepStart, sweepEnd, sweepDuration]);
 
   const handleToneToggle = async () => {
     const engine = audioRef.current;
     if (!engine) return;
 
     if (audioState === 'playing') {
+      setSweepRunning(false);
       engine.stopTone();
       setAudioState('stopped');
       return;
     }
 
-    await engine.startTone(frequency, amplitude);
+    await engine.startTone(frequency, amplitude, harmonicMix);
     setAudioState('playing');
+  };
+
+  const handleSweepToggle = async () => {
+    if (sweepRunning) {
+      setSweepRunning(false);
+      return;
+    }
+
+    const engine = audioRef.current;
+    if (!engine) return;
+
+    setFrequency(sweepStart);
+    setSweepProgress(0);
+    if (audioState !== 'playing') {
+      await engine.startTone(sweepStart, amplitude, harmonicMix);
+      setAudioState('playing');
+    }
+    setSweepRunning(true);
   };
 
   const handleImageUpload = async (event) => {
@@ -141,7 +199,15 @@ export default function App() {
     bloom,
     spin,
     viewMode,
-    claimMode
+    claimMode,
+    harmonicMix,
+    sweep: {
+      start: sweepStart,
+      end: sweepEnd,
+      durationSeconds: sweepDuration,
+      progress: Number(sweepProgress.toFixed(3)),
+      running: sweepRunning
+    }
   };
 
   const params = {
@@ -162,7 +228,7 @@ export default function App() {
           <h1>AquaCymatics369</h1>
           <p className="lede">
             Sound-reactive cymatic fields, torus flythroughs, image-derived reconstruction hints,
-            and a built-in claim ledger so the wonder stays clean.
+            spectrum analysis, sweep mode, and a built-in claim ledger.
           </p>
         </div>
 
@@ -187,9 +253,12 @@ export default function App() {
             <h2>Frequency → Form</h2>
           </div>
 
-          <div className="button-row single">
+          <div className="button-row">
             <button className={audioState === 'playing' ? 'active' : ''} onClick={handleToneToggle}>
               {audioState === 'playing' ? 'Stop oscillator' : 'Start oscillator'}
+            </button>
+            <button className={sweepRunning ? 'active' : ''} onClick={handleSweepToggle}>
+              {sweepRunning ? 'Stop sweep' : 'Start sweep'}
             </button>
           </div>
 
@@ -203,10 +272,24 @@ export default function App() {
 
           <Control label="Frequency" value={frequency} min={32} max={963} step={1} unit="Hz" onChange={setFrequency} />
           <Control label="Amplitude" value={amplitude} min={0.05} max={1} step={0.01} onChange={setAmplitude} />
+          <Control label="Harmonic blend" value={harmonicMix} min={0} max={1} step={0.01} onChange={setHarmonicMix} />
           <Control label="Symmetry sectors" value={symmetry} min={3} max={24} step={1} onChange={setSymmetry} />
           <Control label="Harmonic layers" value={harmonics} min={1} max={12} step={1} onChange={setHarmonics} />
           <Control label="Bloom density" value={bloom} min={0.05} max={1} step={0.01} onChange={setBloom} />
           <Control label="Field rotation" value={spin} min={0} max={1} step={0.01} onChange={setSpin} />
+
+          <section className="sweep-card">
+            <div className="sweep-topline">
+              <p className="ledger-title">Sweep mode</p>
+              <strong>{pct(sweepProgress)}</strong>
+            </div>
+            <div className="sweep-progress" aria-label="Sweep progress">
+              <i style={{ transform: `scaleX(${Math.max(0.01, sweepProgress)})` }} />
+            </div>
+            <Control label="Sweep start" value={sweepStart} min={32} max={700} step={1} unit="Hz" onChange={setSweepStart} />
+            <Control label="Sweep end" value={sweepEnd} min={111} max={1600} step={1} unit="Hz" onChange={setSweepEnd} />
+            <Control label="Sweep duration" value={sweepDuration} min={3} max={60} step={1} unit="sec" onChange={setSweepDuration} />
+          </section>
 
           <label className="select-control">
             <span>Camera</span>
@@ -229,6 +312,15 @@ export default function App() {
               ))}
             </select>
           </label>
+
+          <SpectrumPanel
+            spectrum={spectrum}
+            peakHz={peakHz}
+            frequency={frequency}
+            audioState={audioState}
+            sweepRunning={sweepRunning}
+            harmonicMix={harmonicMix}
+          />
 
           <section className="reconstruction-card">
             <div className="card-title-row">
@@ -288,7 +380,7 @@ export default function App() {
               </div>
               <div>
                 <dt>Transform</dt>
-                <dd>{reconstruction ? 'image decode → radial profile → symmetry scan → inferred field projection' : 'polar wavefield → harmonic lattice → torus projection → bloom pass'}</dd>
+                <dd>{reconstruction ? 'image decode → radial profile → symmetry scan → inferred field projection' : 'oscillator → spectrum analyzer → harmonic lattice → WebGL2 projection'}</dd>
               </div>
               <div>
                 <dt>Allowed</dt>
