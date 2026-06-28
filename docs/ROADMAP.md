@@ -33,6 +33,16 @@ Status: initial pass shipped.
 - Harmonic oscillator blend using multiple partials
 - Session receipt export through the existing JSON receipt lane
 
+## v0.3.1 — Capture and session lane
+
+Status: initial pass shipped.
+
+- PNG canvas snapshot export
+- Local saved sessions
+- Load and delete controls for saved field states
+- Saved session metadata for controls, spectrum, peak frequency, sweep state, and reconstruction hints
+- Local-first storage in the browser
+
 ## v0.4 — Measured-data lane
 
 - Video-frame ingestion
