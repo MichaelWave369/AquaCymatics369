@@ -136,7 +136,12 @@ export default function VisualizerCanvas({ params }) {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, powerPreference: 'high-performance' });
+    const gl = canvas.getContext('webgl2', {
+      antialias: true,
+      alpha: false,
+      preserveDrawingBuffer: true,
+      powerPreference: 'high-performance'
+    });
 
     if (!gl) {
       canvas.dataset.error = 'WebGL2 is not available in this browser.';
