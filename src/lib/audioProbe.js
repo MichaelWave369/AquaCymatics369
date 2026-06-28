@@ -1,4 +1,3 @@
-export function makeAudio() {
-  const Ctx = window.AudioContext || window.webkitAudioContext;
-  return new Ctx();
+export function hasBrowserAudio() {
+  return Boolean(window.AudioContext || window.webkitAudioContext);
 }
