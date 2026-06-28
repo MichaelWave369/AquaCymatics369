@@ -1,0 +1,135 @@
+.spectrum-card,
+.sweep-card {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(55, 246, 255, 0.22);
+  border-radius: 1.2rem;
+  background: linear-gradient(145deg, rgba(55, 246, 255, 0.1), rgba(255, 72, 183, 0.06));
+}
+
+.spectrum-header,
+.sweep-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.85rem;
+}
+
+.spectrum-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.status-pill {
+  padding: 0.38rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.66);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.status-pill.active {
+  color: #fff;
+  border-color: rgba(55, 246, 255, 0.36);
+  background: rgba(55, 246, 255, 0.14);
+  box-shadow: 0 0 24px rgba(55, 246, 255, 0.12);
+}
+
+.spectrum-bars {
+  display: grid;
+  grid-template-columns: repeat(52, 1fr);
+  align-items: end;
+  gap: 2px;
+  height: 96px;
+  padding: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.95rem;
+  background: rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+}
+
+.spectrum-bars i {
+  display: block;
+  height: 100%;
+  min-height: 3px;
+  transform-origin: bottom center;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, var(--cyan), var(--pink));
+  box-shadow: 0 0 12px rgba(55, 246, 255, 0.3);
+  transition: transform 70ms linear;
+}
+
+.spectrum-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+  margin: 0.8rem 0 0;
+}
+
+.spectrum-stats div {
+  padding: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.spectrum-stats dt,
+.sweep-topline p {
+  margin: 0 0 0.2rem;
+}
+
+.spectrum-stats dt {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.spectrum-stats dd {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.sweep-progress {
+  height: 8px;
+  margin: 0 0 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sweep-progress i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cyan), var(--pink), var(--gold));
+  box-shadow: 0 0 18px rgba(255, 72, 183, 0.62);
+}
+
+.sweep-card .range-control:last-child {
+  padding-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .spectrum-bars {
+    grid-template-columns: repeat(26, 1fr);
+  }
+
+  .spectrum-bars i:nth-child(even) {
+    display: none;
+  }
+
+  .spectrum-stats {
+    grid-template-columns: 1fr;
+  }
+}
