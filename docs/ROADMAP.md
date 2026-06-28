@@ -2,6 +2,8 @@
 
 ## v0.1 — Live visual prototype
 
+Status: shipped.
+
 - React + Vite app shell
 - WebGL2 procedural cymatic field engine
 - Browser oscillator signal controls
@@ -22,12 +24,14 @@ Status: initial pass shipped.
 
 ## v0.3 — Audio analysis lane
 
+Status: initial pass shipped.
+
 - Harmonic spectrum panel
-- Optional live input mode
-- Beat and peak detection
-- Frequency presets and sweep recorder
-- Session receipt export
-- Add volume envelope and harmonic oscillator blend
+- Peak-frequency readout
+- Frequency presets
+- Sweep mode with start, end, duration, and progress controls
+- Harmonic oscillator blend using multiple partials
+- Session receipt export through the existing JSON receipt lane
 
 ## v0.4 — Measured-data lane
 
